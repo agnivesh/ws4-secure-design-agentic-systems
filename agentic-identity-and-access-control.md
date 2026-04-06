@@ -2,7 +2,7 @@
 title: "Draft: Agentic Identity and Access Management"
 author: "Workstream 4: Secure Design Patterns for Agentic Systems"
 date: 20 March 2026
-status: Draft
+status: Approved
 ---
 
 _This paper was approved by the CoSAI Technical Steering Committee on March 20, 2026_
