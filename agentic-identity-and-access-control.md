@@ -1,5 +1,5 @@
 ---
-title: "Draft: Agentic Identity and Access Management"
+title: "Agentic Identity and Access Management"
 author: "Workstream 4: Secure Design Patterns for Agentic Systems"
 date: 20 March 2026
 status: Approved
