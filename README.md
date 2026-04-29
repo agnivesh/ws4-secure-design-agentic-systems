@@ -14,10 +14,6 @@ This repository is for the work of the CoSAI Workstream 4, Secure Design Pattern
 ### About this workstream
 The goal of this workstream is to research and develop secure design patterns for AI-based agentic systems including updates to AI usage threat models, conceptual high-level secure design pattern(s), impacts to secure infrastructure design, and other agent integration and use based needs. Further information can be found [here](https://github.com/cosai-oasis/oasis-open-project/blob/main/WORKSTREAMS.md).
 
-### Published work from this workstream
-
-[CoSAI Principles for Secure-by-Design Agentic Systems](https://github.com/cosai-oasis/cosai-tsc/blob/main/security-principles-for-agentic-systems.md)
-
 ### Workstream Leads
 * Ian Molloy (IBM)
 * Sarah Novotny 
@@ -26,25 +22,22 @@ The goal of this workstream is to research and develop secure design patterns fo
 * Alex Polyakov (Adversa)
 * Raghuram Yeluri (Intel)
 
-<!--## Badges [optional – TBD]
+### Published work from this workstream
 
-Using badges is optional, but they are a nice way to show some key facts and stats about your project at a glance. There are badges for all kinds of things relating to your repository, e.g. to show the license you're using, the programming language, the number of forks, or a CI badge to show build/test status. Be mindful not to use too many badges. You can use [Shields](http://shields.io/) to add some to your README. Many services also have instructions for adding a badge. Check out the README of the Open Cybersecurity Alliance project [Kestrel](https://github.com/opencybersecurityalliance/kestrel-lang) to see badges in action.
+#### RFCs
+Active and approved RFCs:
+- [Model Context Protocol (MCP) Security Best Practices Gap Analysis](RFCs/RFC-6.md)
+- [Trust-Aware Dataplane for Agentic Systems](RFCs/RFC-50.md)
 
-## Description -TBD
+#### Whitepapers
+This workstream has published and released the following whitepapers.
+- [CoSAI Principles for Secure-by-Design Agentic Systems](whitepapers/security-principles-for-agentic-systems.md) and [PDF](whitepapers/security-principles-for-agentic-systems.pdf)
+- [Agentic Identity and Access Management](whitepapers/agentic-identity-and-access-control.md) and [PDF](whitepapers/agentic-identity-and-access-control.pdf)
 
-* State what problem(s) your project solves.
-* Note its development status.
-* List the most useful/innovative/noteworthy features.
-* Note and briefly describe any key concepts (technical,  philosophical, or both) important to the user’s understanding.
-* Link to any supplementary blog posts or project main pages.
-* Compare/contrast your project with other, similar projects so the user knows how it is different from those projects.
-* Highlight the technical concepts that your project demonstrates or supports. Keep it very brief.
-* If available, include screenshots and demo videos.
+#### Runbooks
+Runbooks are practical guides, or "cookbooks" providing concrete examples, code snippets, Notebooks, and instantiations of the recomendations, best practices, and security requirements identified in the RFCs and Whitepapers. They are not indended as full solutions, but rather provide an illustration of how to turn the theory into practice.
 
-## Repository Organization (What's Here?) - TBD
-
-You can use this section to give a brief overview of what can be found in this repository, e.g. documentation, meeting minutes, or templates. A good example of this can be found in the README of the [OASIS OpenC2 TC repository](https://github.com/oasis-tcs/openc2-tc-ops/blob/main/README.md).
-Please make sure to update it on a regular basis – when new files or folder are added to the repository.-->
+1. [Tool Design for Secure Agentic Systems](practical-guides/mcp-secure-tool-design.md)
 
 ## Contributing
 
@@ -66,7 +59,7 @@ You can also join us on Slack via [this link](https://join.slack.com/t/cosai-op/
 
 CoSAI and the CoSAI workstream operates under the terms of the [Open Project Rules](https://www.oasis-open.org/policies-guidelines/open-projects-process), the [CoSAI Governance](https://github.com/cosai-oasis/oasis-open-project/blob/main/GOVERNANCE.md) and [Workstream Governance](https://github.com/cosai-oasis/oasis-open-project/blob/main/TSC-WS-GOVERNANCE.md), as well as the following the licenses:
 * CC-BY 4.0 for documentation and data contributions; and
-*  Apache License v2.0 for source code and models
+* Apache License v2.0 for source code and models
   
 The applicable license will be determined for each repository, as applicable, at the time of its
 creation.
