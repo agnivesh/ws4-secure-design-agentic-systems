@@ -26,8 +26,8 @@ The goal of this workstream is to research and develop secure design patterns fo
 
 #### RFCs
 Active and approved RFCs:
-- [Model Context Protocol (MCP) Security Best Practices Gap Analysis](RFCs/RFC-6.md)
-- [Trust-Aware Dataplane for Agentic Systems](RFCs/RFC-50.md)
+- [6. Model Context Protocol (MCP) Security Best Practices Gap Analysis](RFCs/RFC-6.md)
+- [50. Trust-Aware Dataplane for Agentic Systems](RFCs/RFC-50.md)
 
 #### Whitepapers
 This workstream has published and released the following whitepapers.
@@ -42,7 +42,7 @@ Runbooks are practical guides, or "cookbooks" providing concrete examples, code 
 
 ## Contributing
 
-Check out our [onboarding guidance for new participants](https://github.com/cosai-oasis/oasis-open-project/blob/main/ONBOARDING.md) and please see the [CoSAI Contributing policy](./CONTRIBUTING.md) for more details.
+Check out our [onboarding guidance for new participants](https://github.com/cosai-oasis/oasis-open-project/blob/main/ONBOARDING.md) and please see the [CoSAI Contributing policy](CONTRIBUTING.md) for more details.
 
 <!-- Give a brief explanation of what kind of contributions you are looking for and what your requirements are for accepting them. Then link to
 [CONTRIBUTING.md](link to your contributing.md file) for more information and also add a link to [CODE_OF_CONDUCT](link to your code_of_conduct.md file).
@@ -54,7 +54,7 @@ Adds names / GitHub profile links for those who have contributed to this reposit
 ## Support
 For issues or features, please use Github issues. You can also join the workstream mailing list by posting an empty email to [cosai-agentic-systems-ws@lists.oasis-open-projects.org](mailto:cosai-agentic-systems-ws@lists.oasis-open-projects.org). You can read the mailing list archive [here](https://lists.oasis-open-projects.org/g/cosai-agentic-systems-ws/topics).
 
-You can also join us on Slack via [this link](https://join.slack.com/t/cosai-op/shared_invite/zt-2rbgqtolg-GdajCyOiddYtGJ3cSdk1Jg) and introduce yourself in the #ws4-secure-design-agentic-systems channel.
+You can also join us on Slack via [this link](https://join.slack.com/t/cosai-op/shared_invite/zt-2rbgqtolg-GdajCyOiddYtGJ3cSdk1Jg) and introduce yourself in the [#ws4-secure-design-agentic-systems](https://cosai-op.slack.com/archives/C08ET0T8L57) channel.
 
 ## Governance and Licenses
 
