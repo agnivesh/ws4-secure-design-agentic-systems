@@ -162,10 +162,50 @@ def render_claude_code(skill_dir: Path, output_dir: Path, *, symlink: bool = Tru
     target_dir = output_dir / manifest["name"]
     target_dir.mkdir(parents=True, exist_ok=True)
     target_skill = target_dir / "SKILL.md"
-    # Atomic write
-    tmp = target_skill.with_suffix(".tmp")
-    tmp.write_text(rendered)
-    tmp.replace(target_skill)
+
+    if symlink:
+        # Write the rendered SKILL.md to a staging file in the source tree
+        # and symlink it from the destination so source-tree edits to the
+        # manifest get picked up on next render and live SKILL.md edits
+        # are visible immediately.
+        staging = skill_dir / ".rendered.SKILL.md"
+        tmp = staging.with_suffix(".tmp")
+        tmp.write_text(rendered)
+        tmp.replace(staging)
+        if target_skill.exists() or target_skill.is_symlink():
+            target_skill.unlink()
+        target_skill.symlink_to(staging.resolve())
+    else:
+        # Copy mode: atomic write to the destination.
+        tmp = target_skill.with_suffix(".tmp")
+        tmp.write_text(rendered)
+        tmp.replace(target_skill)
+
+    # Sibling files: any data dep with runtime_role: input and a relative path
+    # that resolves to an in-repo file gets installed alongside SKILL.md.
+    deps = manifest.get("dependencies", {})
+    for data_dep in deps.get("data", []) or []:
+        if data_dep.get("runtime_role") != "input":
+            continue
+        prov = data_dep.get("provisioning", {})
+        if not prov.get("tracked_in_repo"):
+            continue
+        rel_path = data_dep.get("path", "")
+        if "/" in rel_path or rel_path.startswith("{"):
+            # Path templates or repo-rooted paths aren't sibling files.
+            continue
+        src = skill_dir / rel_path
+        if not src.exists():
+            continue
+        dest = target_dir / rel_path
+        if dest.exists() or dest.is_symlink():
+            dest.unlink()
+        if symlink:
+            dest.symlink_to(src.resolve())
+        else:
+            tmp = dest.with_suffix(dest.suffix + ".tmp")
+            tmp.write_bytes(src.read_bytes())
+            tmp.replace(dest)
 
     return target_skill
 

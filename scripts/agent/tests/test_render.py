@@ -18,6 +18,24 @@ def run_render(*args: str) -> subprocess.CompletedProcess:
     )
 
 
+MINIMAL_MANIFEST = (
+    "schema_version: 1\n"
+    "name: demo-skill\n"
+    "description: A demo skill.\n"
+    "version: 0.1.0\n"
+    "governance: { license: CC-BY-4.0, ai_attribution: 'foo' }\n"
+    "arguments: []\n"
+    "dependencies:\n"
+    "  tools:\n"
+    "    - { id: filesystem, required: true, capabilities: [read] }\n"
+    "output: { primary: { type: markdown, location: out/x.md } }\n"
+    "boundaries: { does_not: ['nothing'] }\n"
+    "failure_modes:\n"
+    "  - { condition: x, action: y }\n"
+    "narrative: SKILL.md\n"
+)
+
+
 def test_render_runs_with_help():
     result = run_render("--help")
     assert result.returncode == 0
@@ -169,3 +187,56 @@ def test_claude_code_render_produces_skill_md(tmp_path: Path):
     assert "description: A demo skill" in rendered
     assert "Skill Contract" in rendered  # manifest-context block
     assert "Prose." in rendered
+
+
+def test_claude_code_render_with_symlink(tmp_path: Path):
+    """--symlink (default): destination SKILL.md is a symlink resolving back into the source tree."""
+    import render as r
+
+    skill_src = tmp_path / "src" / "demo-skill"
+    skill_src.mkdir(parents=True)
+    (skill_src / "manifest.yaml").write_text(MINIMAL_MANIFEST)
+    (skill_src / "SKILL.md").write_text("# Body\n")
+
+    out = tmp_path / "out"
+    target = r.render_claude_code(skill_src, out, symlink=True)
+
+    # In symlink mode, render writes to a staging path within the source dir
+    # then symlinks it from the destination.
+    assert target.is_symlink() or (out / "demo-skill" / "SKILL.md").is_symlink()
+
+
+def test_claude_code_render_copies_sibling_files(tmp_path: Path):
+    """Sibling files declared in the manifest's runtime_role: input data deps are copied/symlinked alongside."""
+    import render as r
+
+    skill_src = tmp_path / "src" / "demo-skill"
+    skill_src.mkdir(parents=True)
+    manifest_with_sibling = (
+        "schema_version: 1\n"
+        "name: demo-skill\n"
+        "description: Demo with sibling.\n"
+        "version: 0.1.0\n"
+        "governance: { license: CC-BY-4.0, ai_attribution: 'foo' }\n"
+        "arguments: []\n"
+        "dependencies:\n"
+        "  tools:\n"
+        "    - { id: filesystem, required: true, capabilities: [read] }\n"
+        "  data:\n"
+        "    - path: data.json\n"
+        "      access: read\n"
+        "      runtime_role: input\n"
+        "      provisioning: { kind: in-repo, tracked_in_repo: true }\n"
+        "output: { primary: { type: markdown, location: out/x.md } }\n"
+        "boundaries: { does_not: ['nothing'] }\n"
+        "failure_modes:\n"
+        "  - { condition: x, action: y }\n"
+        "narrative: SKILL.md\n"
+    )
+    (skill_src / "manifest.yaml").write_text(manifest_with_sibling)
+    (skill_src / "SKILL.md").write_text("# Body\n")
+    (skill_src / "data.json").write_text("{}")
+
+    out = tmp_path / "out"
+    r.render_claude_code(skill_src, out, symlink=False)
+    assert (out / "demo-skill" / "data.json").exists()
