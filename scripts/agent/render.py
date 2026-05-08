@@ -6,7 +6,9 @@ See scripts/agent/DESIGN.md §8 for behaviour.
 from __future__ import annotations
 
 import argparse
+import functools
 import json
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -23,12 +25,13 @@ CONFIG_SCHEMA_PATH = CONFIGS_DIR / "_config.schema.json"
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
-def _load_json(path: Path) -> dict[str, Any]:
-    with open(path) as f:
+@functools.lru_cache(maxsize=8)
+def _load_json_cached(path: Path) -> dict[str, Any]:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -36,23 +39,25 @@ def _load_manifest(skill_dir: Path) -> dict[str, Any]:
     return _load_yaml(skill_dir / "manifest.yaml")
 
 
-def _validate_manifest(manifest: dict[str, Any]) -> list[str]:
-    """Return list of validation error messages; empty if valid."""
-    schema = _load_json(MANIFEST_SCHEMA_PATH)
+def _format_validation_errors(instance: dict[str, Any], schema_path: Path) -> list[str]:
+    """Validate `instance` against the schema at `schema_path`.
+
+    Returns a list of human-readable error messages; empty list means valid.
+    """
+    schema = _load_json_cached(schema_path)
     errors = []
-    for err in Draft202012Validator(schema).iter_errors(manifest):
+    for err in Draft202012Validator(schema).iter_errors(instance):
         path = "/".join(str(p) for p in err.path) or "<root>"
         errors.append(f"{path}: {err.message}")
     return errors
+
+
+def _validate_manifest(manifest: dict[str, Any]) -> list[str]:
+    return _format_validation_errors(manifest, MANIFEST_SCHEMA_PATH)
 
 
 def _validate_config(config: dict[str, Any]) -> list[str]:
-    schema = _load_json(CONFIG_SCHEMA_PATH)
-    errors = []
-    for err in Draft202012Validator(schema).iter_errors(config):
-        path = "/".join(str(p) for p in err.path) or "<root>"
-        errors.append(f"{path}: {err.message}")
-    return errors
+    return _format_validation_errors(config, CONFIG_SCHEMA_PATH)
 
 
 def _deep_merge(parent: dict[str, Any], child: dict[str, Any]) -> dict[str, Any]:
@@ -146,11 +151,13 @@ def render_claude_code(
     skill_dir: Path,
     output_dir: Path,
     *,
+    manifest: dict[str, Any] | None = None,
     symlink: bool = True,
     repo_root: Path | None = None,
 ) -> Path:
     """Render a skill for Claude Code. Returns the path of the written SKILL.md."""
-    manifest = _load_manifest(skill_dir)
+    if manifest is None:
+        manifest = _load_manifest(skill_dir)
     errors = _validate_manifest(manifest)
     if errors:
         raise ValueError(f"manifest validation failed for {skill_dir.name}: {errors}")
@@ -182,8 +189,7 @@ def render_claude_code(
         tmp = staging.with_suffix(".tmp")
         tmp.write_text(rendered)
         tmp.replace(staging)
-        if target_skill.exists() or target_skill.is_symlink():
-            target_skill.unlink()
+        target_skill.unlink(missing_ok=True)
         target_skill.symlink_to(staging.resolve())
     else:
         # Copy mode: atomic write to the destination.
@@ -208,14 +214,11 @@ def render_claude_code(
         if not src.exists():
             continue
         dest = target_dir / rel_path
-        if dest.exists() or dest.is_symlink():
-            dest.unlink()
+        dest.unlink(missing_ok=True)
         if symlink:
             dest.symlink_to(src.resolve())
         else:
-            tmp = dest.with_suffix(dest.suffix + ".tmp")
-            tmp.write_bytes(src.read_bytes())
-            tmp.replace(dest)
+            shutil.copy2(src, dest)
 
     return target_skill
 
@@ -282,11 +285,11 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         return 0
 
-    target_path = render_claude_code(skill_dir, output_dir, symlink=args.symlink)
+    manifest = _load_manifest(skill_dir)
+    target_path = render_claude_code(skill_dir, output_dir, manifest=manifest, symlink=args.symlink)
     print(f"Rendered {args.skill} -> {target_path}", file=sys.stderr)
 
     # Out-of-band data deps reminder
-    manifest = _load_manifest(skill_dir)
     for data_dep in manifest.get("dependencies", {}).get("data", []) or []:
         if data_dep.get("provisioning", {}).get("kind") == "out-of-band":
             populated_by = data_dep.get("provisioning", {}).get("populated_by", {})

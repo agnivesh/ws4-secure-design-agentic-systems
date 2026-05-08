@@ -38,6 +38,13 @@ def test_invalid_manifest_missing_field_fails(manifest_schema: dict, fixtures_di
         Draft202012Validator(manifest_schema).validate(manifest)
 
 
+def test_invalid_manifest_unknown_nested_field_fails(manifest_schema: dict, fixtures_dir: Path):
+    """Nested objects use additionalProperties: false; unknown keys (not x-*) must fail."""
+    manifest = load_yaml(fixtures_dir / "invalid_manifest_unknown_field.yaml")
+    with pytest.raises(ValidationError):
+        Draft202012Validator(manifest_schema).validate(manifest)
+
+
 @pytest.fixture
 def config_schema(agent_dir: Path) -> dict:
     return load_json(agent_dir / "configs" / "_config.schema.json")
@@ -52,9 +59,9 @@ def test_valid_config_passes(config_schema: dict, fixtures_dir: Path):
     Draft202012Validator(config_schema).validate(config)
 
 
-def test_config_with_extends_passes_schema(config_schema: dict, fixtures_dir: Path):
+def test_config_with_unresolved_extends_passes_schema(config_schema: dict, fixtures_dir: Path):
     """Schema does NOT enforce that extends resolves; that's render.py's job."""
-    config = load_yaml(fixtures_dir / "invalid_config_extends_loop.yaml")
+    config = load_yaml(fixtures_dir / "config_with_unresolved_extends.yaml")
     # Schema-level validation passes — extends references are resolved
-    # by the renderer, which catches loops separately (see test_render.py).
+    # by the renderer, which catches unresolved parents separately (see test_render.py).
     Draft202012Validator(config_schema).validate(config)

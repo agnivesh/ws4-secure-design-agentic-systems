@@ -13,8 +13,7 @@
     "dependencies",
     "output",
     "boundaries",
-    "failure_modes",
-    "narrative"
+    "failure_modes"
   ],
   "properties": {
     "schema_version": { "type": "integer", "const": 1 },
@@ -27,7 +26,9 @@
       "properties": {
         "license": { "type": "string" },
         "ai_attribution": { "type": "string" }
-      }
+      },
+      "additionalProperties": false,
+      "patternProperties": { "^x-": {} }
     },
     "arguments": {
       "type": "array",
@@ -39,7 +40,9 @@
           "type": { "type": "string", "enum": ["string", "integer", "boolean", "array"] },
           "required": { "type": "boolean" },
           "description": { "type": "string" }
-        }
+        },
+        "additionalProperties": false,
+        "patternProperties": { "^x-": {} }
       }
     },
     "dependencies": {
@@ -59,7 +62,9 @@
                 "type": "array",
                 "items": { "type": "string", "enum": ["read", "write", "exec"] }
               }
-            }
+            },
+            "additionalProperties": false,
+            "patternProperties": { "^x-": {} }
           }
         },
         "configs": {
@@ -70,7 +75,9 @@
             "properties": {
               "path": { "type": "string" },
               "schema": { "type": "string" }
-            }
+            },
+            "additionalProperties": false,
+            "patternProperties": { "^x-": {} }
           }
         },
         "data": {
@@ -94,23 +101,65 @@
                       "tool": { "type": "string" },
                       "repo": { "type": "string" },
                       "documented_at": { "type": "string" }
-                    }
+                    },
+                    "additionalProperties": false,
+                    "patternProperties": { "^x-": {} }
                   },
                   "cadence": { "type": "string" },
                   "on_missing": { "type": "string" }
-                }
+                },
+                "additionalProperties": false,
+                "patternProperties": { "^x-": {} }
               }
-            }
+            },
+            "additionalProperties": false,
+            "patternProperties": { "^x-": {} }
           }
         }
-      }
+      },
+      "additionalProperties": false,
+      "patternProperties": { "^x-": {} }
     },
     "composition": {
       "type": "object",
       "properties": {
-        "calls": { "type": "array", "items": { "type": "object" } },
-        "called_by": { "type": "array", "items": { "type": "object" } }
-      }
+        "calls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["skill"],
+            "properties": {
+              "skill": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+              "mode": { "type": "string", "enum": ["required", "optional"] },
+              "condition": { "type": "string" },
+              "passes": { "type": "object" },
+              "receives": { "type": "object" },
+              "v1_status": { "type": "string", "enum": ["implemented", "deferred"] }
+            },
+            "additionalProperties": false,
+            "patternProperties": { "^x-": {} }
+          }
+        },
+        "called_by": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["skill"],
+            "properties": {
+              "skill": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+              "mode": { "type": "string", "enum": ["required", "optional"] },
+              "condition": { "type": "string" },
+              "passes": { "type": "object" },
+              "receives": { "type": "object" },
+              "v1_status": { "type": "string", "enum": ["implemented", "deferred"] }
+            },
+            "additionalProperties": false,
+            "patternProperties": { "^x-": {} }
+          }
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": { "^x-": {} }
     },
     "output": {
       "type": "object",
@@ -123,7 +172,9 @@
             "type": { "type": "string" },
             "location": { "type": "string" },
             "frontmatter": { "type": "object" }
-          }
+          },
+          "additionalProperties": false,
+          "patternProperties": { "^x-": {} }
         },
         "side_effects": {
           "type": "array",
@@ -135,17 +186,23 @@
               "condition": { "type": "string" },
               "action": { "type": "string" },
               "v1_status": { "type": "string", "enum": ["implemented", "deferred"] }
-            }
+            },
+            "additionalProperties": false,
+            "patternProperties": { "^x-": {} }
           }
         }
-      }
+      },
+      "additionalProperties": false,
+      "patternProperties": { "^x-": {} }
     },
     "boundaries": {
       "type": "object",
       "required": ["does_not"],
       "properties": {
         "does_not": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
-      }
+      },
+      "additionalProperties": false,
+      "patternProperties": { "^x-": {} }
     },
     "failure_modes": {
       "type": "array",
@@ -156,7 +213,9 @@
         "properties": {
           "condition": { "type": "string" },
           "action": { "type": "string" }
-        }
+        },
+        "additionalProperties": false,
+        "patternProperties": { "^x-": {} }
       }
     },
     "narrative": { "type": "string", "default": "SKILL.md" }

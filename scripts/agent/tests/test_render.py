@@ -7,7 +7,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RENDER = REPO_ROOT / "scripts" / "agent" / "render.py"
-PYTHON = "/Users/sarahnovotny/Github/python3.12-venv/bin/python3"
+PYTHON = sys.executable
 
 
 def run_render(*args: str) -> subprocess.CompletedProcess:
@@ -160,22 +160,7 @@ def test_claude_code_render_produces_skill_md(tmp_path: Path):
 
     skill_src = tmp_path / "src" / "demo-skill"
     skill_src.mkdir(parents=True)
-    (skill_src / "manifest.yaml").write_text(
-        "schema_version: 1\n"
-        "name: demo-skill\n"
-        "description: A demo skill.\n"
-        "version: 0.1.0\n"
-        "governance: { license: CC-BY-4.0, ai_attribution: 'foo' }\n"
-        "arguments: []\n"
-        "dependencies:\n"
-        "  tools:\n"
-        "    - { id: filesystem, required: true, capabilities: [read] }\n"
-        "output: { primary: { type: markdown, location: out/x.md } }\n"
-        "boundaries: { does_not: ['nothing'] }\n"
-        "failure_modes:\n"
-        "  - { condition: x, action: y }\n"
-        "narrative: SKILL.md\n"
-    )
+    (skill_src / "manifest.yaml").write_text(MINIMAL_MANIFEST)
     (skill_src / "SKILL.md").write_text("# Body\n\nProse.\n")
 
     out = tmp_path / "out"
@@ -209,31 +194,19 @@ def test_claude_code_render_with_symlink(tmp_path: Path):
 def test_claude_code_render_copies_sibling_files(tmp_path: Path):
     """Sibling files declared in the manifest's runtime_role: input data deps are copied/symlinked alongside."""
     import render as r
+    import yaml as _yaml
 
     skill_src = tmp_path / "src" / "demo-skill"
     skill_src.mkdir(parents=True)
-    manifest_with_sibling = (
-        "schema_version: 1\n"
-        "name: demo-skill\n"
-        "description: Demo with sibling.\n"
-        "version: 0.1.0\n"
-        "governance: { license: CC-BY-4.0, ai_attribution: 'foo' }\n"
-        "arguments: []\n"
-        "dependencies:\n"
-        "  tools:\n"
-        "    - { id: filesystem, required: true, capabilities: [read] }\n"
-        "  data:\n"
-        "    - path: data.json\n"
-        "      access: read\n"
-        "      runtime_role: input\n"
-        "      provisioning: { kind: in-repo, tracked_in_repo: true }\n"
-        "output: { primary: { type: markdown, location: out/x.md } }\n"
-        "boundaries: { does_not: ['nothing'] }\n"
-        "failure_modes:\n"
-        "  - { condition: x, action: y }\n"
-        "narrative: SKILL.md\n"
-    )
-    (skill_src / "manifest.yaml").write_text(manifest_with_sibling)
+    manifest_dict = _yaml.safe_load(MINIMAL_MANIFEST)
+    manifest_dict["description"] = "Demo with sibling."
+    manifest_dict["dependencies"]["data"] = [{
+        "path": "data.json",
+        "access": "read",
+        "runtime_role": "input",
+        "provisioning": {"kind": "in-repo", "tracked_in_repo": True},
+    }]
+    (skill_src / "manifest.yaml").write_text(_yaml.safe_dump(manifest_dict, sort_keys=False))
     (skill_src / "SKILL.md").write_text("# Body\n")
     (skill_src / "data.json").write_text("{}")
 
