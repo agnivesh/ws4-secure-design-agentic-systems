@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "namespaces": {
+    "ws4": {
+      "milestones": [
+        {
+          "wave": "Wave 1 editorial",
+          "milestone": "mcp-security-whitepaper-v1.1-editorial",
+          "contents": "Low-risk doc fixes for a v1.1 cut"
+        },
+        {
+          "wave": "Wave 1 docs support",
+          "milestone": "docs-support-v1.0",
+          "contents": "Diagrams, reference artifacts supporting the whitepaper"
+        },
+        {
+          "wave": "Wave 2 conceptual",
+          "milestone": "mcp-security-whitepaper-v1.2-conceptual",
+          "contents": "Substantive v2 whitepaper content"
+        },
+        {
+          "wave": "Playbook wave 1",
+          "milestone": "playbook-v1.0",
+          "contents": "The 7 playbooks (#52-#58)"
+        },
+        {
+          "wave": "Program tracking",
+          "milestone": "playbook-v1.0-program",
+          "contents": "Umbrella/EPIC for the playbook program"
+        },
+        {
+          "wave": "Later conceptual track",
+          "milestone": "identity-delegation-v1.0",
+          "contents": "Delegation semantics, token binding, portable identity"
+        },
+        {
+          "wave": "Later conceptual track",
+          "milestone": "identity-playbook-v1.0",
+          "contents": "Identity-adjacent playbook content (TBAC, reference apps)"
+        },
+        {
+          "wave": "Later conceptual track",
+          "milestone": "runtime-governance-rfc-v0",
+          "contents": "Runtime enforcement / data plane RFCs"
+        },
+        {
+          "wave": "Review backlog",
+          "milestone": "review-backlog",
+          "contents": "Parked pending clarification or external materials"
+        }
+      ]
+    }
+  }
+}
