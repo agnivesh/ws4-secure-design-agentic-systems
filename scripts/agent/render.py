@@ -55,6 +55,65 @@ def _validate_config(config: dict[str, Any]) -> list[str]:
     return errors
 
 
+def _deep_merge(parent: dict[str, Any], child: dict[str, Any]) -> dict[str, Any]:
+    """Deep-merge child onto parent. Object fields merge; arrays fully replace; scalars override; null clears."""
+    if not isinstance(parent, dict) or not isinstance(child, dict):
+        return child
+    result = dict(parent)
+    for key, child_val in child.items():
+        if child_val is None and key in result:
+            del result[key]
+            continue
+        if (
+            key in result
+            and isinstance(result[key], dict)
+            and isinstance(child_val, dict)
+        ):
+            result[key] = _deep_merge(result[key], child_val)
+        else:
+            # Scalars and arrays replace.
+            result[key] = child_val
+    return result
+
+
+def resolve_config(config_path: Path, configs_dir: Path | None = None) -> dict[str, Any]:
+    """Load a config, resolving a single-level `extends:` chain.
+
+    Raises FileNotFoundError if extends points at a missing parent.
+    Raises ValueError if a chain longer than one level is encountered.
+    """
+    configs_dir = configs_dir or CONFIGS_DIR
+    config = _load_yaml(config_path)
+
+    parent_id = config.get("extends")
+    if not parent_id:
+        return config
+
+    parent_path = configs_dir / f"{parent_id}.yaml"
+    if not parent_path.exists():
+        raise FileNotFoundError(
+            f"{config_path.name}: extends '{parent_id}' but {parent_path} does not exist"
+        )
+
+    parent = _load_yaml(parent_path)
+    if parent.get("extends"):
+        raise ValueError(
+            f"{config_path.name} extends {parent_id}, which itself extends "
+            f"{parent['extends']}. Inheritance is single-level only."
+        )
+
+    if parent.get("schema_version") != config.get("schema_version"):
+        raise ValueError(
+            f"{config_path.name} schema_version {config.get('schema_version')} "
+            f"does not match parent {parent_path.name} "
+            f"schema_version {parent.get('schema_version')}"
+        )
+
+    merged = _deep_merge(parent, config)
+    merged.pop("extends", None)
+    return merged
+
+
 def _list_skill_dirs() -> list[Path]:
     """Return all directories under scripts/agent/ that contain a manifest.yaml."""
     skills = []
