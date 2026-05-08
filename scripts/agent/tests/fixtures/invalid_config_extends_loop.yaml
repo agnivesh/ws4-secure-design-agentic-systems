@@ -1,0 +1,6 @@
+schema_version: 1
+extends: nonexistent-parent
+workstream:
+  id: looper
+  name: Looper
+  full_name: A config whose extends does not resolve to anything

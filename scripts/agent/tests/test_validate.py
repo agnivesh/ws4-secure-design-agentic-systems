@@ -36,3 +36,25 @@ def test_invalid_manifest_missing_field_fails(manifest_schema: dict, fixtures_di
     manifest = load_yaml(fixtures_dir / "invalid_manifest_missing_field.yaml")
     with pytest.raises(ValidationError):
         Draft202012Validator(manifest_schema).validate(manifest)
+
+
+@pytest.fixture
+def config_schema(agent_dir: Path) -> dict:
+    return load_json(agent_dir / "configs" / "_config.schema.json")
+
+
+def test_config_schema_loads(config_schema: dict):
+    Draft202012Validator.check_schema(config_schema)
+
+
+def test_valid_config_passes(config_schema: dict, fixtures_dir: Path):
+    config = load_yaml(fixtures_dir / "valid_config.yaml")
+    Draft202012Validator(config_schema).validate(config)
+
+
+def test_config_with_extends_passes_schema(config_schema: dict, fixtures_dir: Path):
+    """Schema does NOT enforce that extends resolves; that's render.py's job."""
+    config = load_yaml(fixtures_dir / "invalid_config_extends_loop.yaml")
+    # Schema-level validation passes — extends references are resolved
+    # by the renderer, which catches loops separately (see test_render.py).
+    Draft202012Validator(config_schema).validate(config)
