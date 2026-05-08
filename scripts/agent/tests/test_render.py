@@ -240,3 +240,50 @@ def test_claude_code_render_copies_sibling_files(tmp_path: Path):
     out = tmp_path / "out"
     r.render_claude_code(skill_src, out, symlink=False)
     assert (out / "demo-skill" / "data.json").exists()
+
+
+def test_cli_dispatch_to_claude_code(tmp_path: Path):
+    """Running render.py <skill> --target=claude-code --output=<path> --copy works end-to-end."""
+    # Use a temp skill set up exactly like a real one in scripts/agent/.
+    skill_src = REPO_ROOT / "scripts" / "agent" / "test-demo-skill-tmp"
+    skill_src.mkdir(parents=True, exist_ok=True)
+    try:
+        (skill_src / "manifest.yaml").write_text(MINIMAL_MANIFEST.replace("demo-skill", "test-demo-skill-tmp"))
+        (skill_src / "SKILL.md").write_text("# Hello\n")
+
+        out = tmp_path / "out"
+        result = run_render(
+            "test-demo-skill-tmp",
+            "--target=claude-code",
+            "--copy",
+            f"--output={out}",
+        )
+        assert result.returncode == 0, result.stderr
+        rendered = (out / "test-demo-skill-tmp" / "SKILL.md").read_text()
+        assert "name: test-demo-skill-tmp" in rendered
+        assert "Hello" in rendered
+    finally:
+        # Cleanup
+        for f in skill_src.iterdir():
+            f.unlink()
+        skill_src.rmdir()
+
+
+def test_path_substitution_replaces_repo_root(tmp_path: Path):
+    """<repo_root> placeholders in SKILL.md are substituted with the absolute repo path."""
+    import render as r
+
+    skill_src = tmp_path / "src" / "demo-skill"
+    skill_src.mkdir(parents=True)
+    (skill_src / "manifest.yaml").write_text(MINIMAL_MANIFEST)
+    (skill_src / "SKILL.md").write_text(
+        "# Body\nConfigs live at <repo_root>/scripts/agent/configs/.\n"
+    )
+
+    out = tmp_path / "out"
+    # Simulate a known repo root for substitution.
+    r.render_claude_code(skill_src, out, symlink=False, repo_root=Path("/abs/repo"))
+
+    rendered = (out / "demo-skill" / "SKILL.md").read_text()
+    assert "/abs/repo/scripts/agent/configs/" in rendered
+    assert "<repo_root>" not in rendered

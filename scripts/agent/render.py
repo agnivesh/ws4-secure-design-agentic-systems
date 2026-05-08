@@ -142,7 +142,13 @@ def _manifest_context_block(manifest: dict[str, Any]) -> str:
     )
 
 
-def render_claude_code(skill_dir: Path, output_dir: Path, *, symlink: bool = True) -> Path:
+def render_claude_code(
+    skill_dir: Path,
+    output_dir: Path,
+    *,
+    symlink: bool = True,
+    repo_root: Path | None = None,
+) -> Path:
     """Render a skill for Claude Code. Returns the path of the written SKILL.md."""
     manifest = _load_manifest(skill_dir)
     errors = _validate_manifest(manifest)
@@ -151,6 +157,10 @@ def render_claude_code(skill_dir: Path, output_dir: Path, *, symlink: bool = Tru
 
     skill_body_path = skill_dir / manifest.get("narrative", "SKILL.md")
     skill_body = skill_body_path.read_text()
+    # Render-time path substitution: replace <repo_root> with the absolute repo path.
+    if repo_root is None:
+        repo_root = REPO_ROOT
+    skill_body = skill_body.replace("<repo_root>", str(repo_root))
 
     rendered = (
         _claude_code_frontmatter(manifest)
@@ -250,7 +260,39 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skill:
         parser.error("the following arguments are required: skill (or use --validate-all)")
 
-    print(f"render.py: skill={args.skill} target={args.target} (target rendering not yet implemented)", file=sys.stderr)
+    if args.target == "generic":
+        print("Generic-prompt rendering deferred to v2; CLI accepts the flag for forward-compat.", file=sys.stderr)
+        manifest = _load_manifest(AGENT_DIR / args.skill)
+        print(yaml.safe_dump({k: manifest.get(k) for k in ("name", "version", "arguments")}, sort_keys=False), file=sys.stderr)
+        return 2
+
+    skill_dir = AGENT_DIR / args.skill
+    if not skill_dir.exists():
+        print(f"render.py: skill {args.skill!r} not found at {skill_dir}", file=sys.stderr)
+        return 1
+
+    output_dir = Path(args.output) if args.output else Path.home() / ".claude" / "skills"
+
+    if args.dry_run:
+        print(f"DRY RUN: would render {args.skill} -> {output_dir / args.skill}", file=sys.stderr)
+        manifest = _load_manifest(skill_dir)
+        errors = _validate_manifest(manifest)
+        if errors:
+            print(f"Manifest validation failures: {errors}", file=sys.stderr)
+            return 1
+        return 0
+
+    target_path = render_claude_code(skill_dir, output_dir, symlink=args.symlink)
+    print(f"Rendered {args.skill} -> {target_path}", file=sys.stderr)
+
+    # Out-of-band data deps reminder
+    manifest = _load_manifest(skill_dir)
+    for data_dep in manifest.get("dependencies", {}).get("data", []) or []:
+        if data_dep.get("provisioning", {}).get("kind") == "out-of-band":
+            populated_by = data_dep.get("provisioning", {}).get("populated_by", {})
+            tool = populated_by.get("tool", "(unknown)")
+            print(f"Reminder: data path {data_dep['path']} is populated out-of-band by {tool}", file=sys.stderr)
+
     return 0
 
 
