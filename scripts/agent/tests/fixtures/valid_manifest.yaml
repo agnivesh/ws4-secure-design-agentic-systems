@@ -1,0 +1,32 @@
+schema_version: 1
+name: example-skill
+description: |
+  An example skill manifest used as a test fixture for validating
+  manifest.schema.json. Not a real skill.
+version: 0.1.0
+governance:
+  license: CC-BY-4.0
+  ai_attribution: |
+    Co-authored-by: AI Assistant <ai-assistant@coalitionforsecureai.org>
+arguments:
+  - name: target
+    type: string
+    required: true
+    description: The thing to operate on.
+dependencies:
+  tools:
+    - id: filesystem
+      purpose: read inputs, write outputs
+      required: true
+      capabilities: [read, write]
+output:
+  primary:
+    type: markdown
+    location: out/{target}.md
+boundaries:
+  does_not:
+    - Modify inputs
+failure_modes:
+  - condition: input not found
+    action: halt with the expected path
+narrative: SKILL.md
