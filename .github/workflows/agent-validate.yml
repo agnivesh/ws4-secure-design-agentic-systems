@@ -1,0 +1,35 @@
+name: Validate scripts/agent manifests and configs
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/agent/**'
+  push:
+    branches: [main, reorg]
+    paths:
+      - 'scripts/agent/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install runtime deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r scripts/agent/requirements-dev.txt
+
+      - name: Run --validate-all
+        run: python scripts/agent/render.py --validate-all
+
+      - name: Run pytest
+        run: python -m pytest scripts/agent/tests/ -v
