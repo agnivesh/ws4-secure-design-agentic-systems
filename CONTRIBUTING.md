@@ -39,6 +39,10 @@ All new work must be approved through the Request for Comments (RFC) process:
   
 - **Unlinked PRs**: Pull requests not addressing an RFC or issue may be marked and closed.
 
+## Working with WS4 tooling
+
+Repeatable PM tasks (meeting agendas, issue triage) are scaffolded in `scripts/agent/`. Skills there are workstream-agnostic (drop a config in `scripts/agent/configs/`) and harness-aware (Claude Code today; the manifest schema is intentionally portable for other agentic harnesses). See `scripts/agent/README.md` for install + use.
+
 ## Questions?
 
 If you have questions about the contribution process, please reach out through our Slack channel or mailing list.
