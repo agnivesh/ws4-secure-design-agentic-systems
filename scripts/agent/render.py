@@ -114,6 +114,62 @@ def resolve_config(config_path: Path, configs_dir: Path | None = None) -> dict[s
     return merged
 
 
+def _claude_code_frontmatter(manifest: dict[str, Any]) -> str:
+    """Build the YAML frontmatter Claude Code requires."""
+    description = " ".join(manifest["description"].split())  # collapse whitespace to single line
+    return (
+        "---\n"
+        f"name: {manifest['name']}\n"
+        f"description: {description}\n"
+        "---\n"
+    )
+
+
+def _manifest_context_block(manifest: dict[str, Any]) -> str:
+    """Build the auto-generated 'Skill Contract' block injected into rendered SKILL.md."""
+    summary = {
+        k: manifest[k]
+        for k in ("arguments", "dependencies", "composition", "output", "boundaries")
+        if k in manifest
+    }
+    yaml_text = yaml.safe_dump(summary, sort_keys=False)
+    return (
+        "## Skill Contract (auto-generated from manifest.yaml; do not edit)\n\n"
+        "```yaml\n"
+        f"{yaml_text}"
+        "```\n\n"
+        "See `scripts/agent/<skill>/manifest.yaml` for canonical.\n\n"
+    )
+
+
+def render_claude_code(skill_dir: Path, output_dir: Path, *, symlink: bool = True) -> Path:
+    """Render a skill for Claude Code. Returns the path of the written SKILL.md."""
+    manifest = _load_manifest(skill_dir)
+    errors = _validate_manifest(manifest)
+    if errors:
+        raise ValueError(f"manifest validation failed for {skill_dir.name}: {errors}")
+
+    skill_body_path = skill_dir / manifest.get("narrative", "SKILL.md")
+    skill_body = skill_body_path.read_text()
+
+    rendered = (
+        _claude_code_frontmatter(manifest)
+        + "\n"
+        + _manifest_context_block(manifest)
+        + skill_body
+    )
+
+    target_dir = output_dir / manifest["name"]
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_skill = target_dir / "SKILL.md"
+    # Atomic write
+    tmp = target_skill.with_suffix(".tmp")
+    tmp.write_text(rendered)
+    tmp.replace(target_skill)
+
+    return target_skill
+
+
 def _list_skill_dirs() -> list[Path]:
     """Return all directories under scripts/agent/ that contain a manifest.yaml."""
     skills = []

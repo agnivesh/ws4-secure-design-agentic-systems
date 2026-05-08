@@ -134,3 +134,38 @@ def test_extends_no_chain(tmp_path: Path):
     child.write_text("schema_version: 1\nextends: parent\nworkstream: { id: c, name: C, full_name: C }\n")
     with pytest.raises(ValueError, match="single-level"):
         r.resolve_config(child, configs_dir=tmp_path)
+
+
+def test_claude_code_render_produces_skill_md(tmp_path: Path):
+    """Render writes a SKILL.md with the manifest's frontmatter and SKILL.md body."""
+    import render as r
+
+    skill_src = tmp_path / "src" / "demo-skill"
+    skill_src.mkdir(parents=True)
+    (skill_src / "manifest.yaml").write_text(
+        "schema_version: 1\n"
+        "name: demo-skill\n"
+        "description: A demo skill.\n"
+        "version: 0.1.0\n"
+        "governance: { license: CC-BY-4.0, ai_attribution: 'foo' }\n"
+        "arguments: []\n"
+        "dependencies:\n"
+        "  tools:\n"
+        "    - { id: filesystem, required: true, capabilities: [read] }\n"
+        "output: { primary: { type: markdown, location: out/x.md } }\n"
+        "boundaries: { does_not: ['nothing'] }\n"
+        "failure_modes:\n"
+        "  - { condition: x, action: y }\n"
+        "narrative: SKILL.md\n"
+    )
+    (skill_src / "SKILL.md").write_text("# Body\n\nProse.\n")
+
+    out = tmp_path / "out"
+    r.render_claude_code(skill_src, out, symlink=False)
+
+    rendered = (out / "demo-skill" / "SKILL.md").read_text()
+    assert rendered.startswith("---\n")
+    assert "name: demo-skill" in rendered
+    assert "description: A demo skill" in rendered
+    assert "Skill Contract" in rendered  # manifest-context block
+    assert "Prose." in rendered
