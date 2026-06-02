@@ -1,0 +1,41 @@
+schema_version: 1
+
+# ADLC is a SIG under WS4 and shares its repo, Slack workspace, mailing list,
+# and triage milestones file. Inherit those from ws4.yaml; override only the
+# fields that differ. (Single-level extends; deep-merged — objects merge,
+# arrays replace wholesale, null clears.)
+extends: ws4
+
+workstream:
+  id: adlc
+  name: ADLC
+  full_name: Agentic Development Lifecycle SIG (WS4)
+  parent_workstream: ws4
+
+leads:
+  - { name: Sarah Novotny, github: sarahnovotny, role: chair }
+  - { name: Ian Molloy, github: imolloy, role: chair }
+  - { name: Parul Singh, github: husky-parul, role: chair }
+  - { name: Kathleen Goesche, github: kgoesche, role: supporting }
+  - { name: Jennings Aske, github: null, role: supporting }
+  - { name: Peru, github: null, role: supporting }
+  - { name: David LaBianca, github: davidlabianca, role: contributor }
+
+meeting:
+  cadence: Wednesdays
+  time: "11:00 ET / 08:00 PT"
+  meeting_minutes_dir: meeting_minutes/adlc
+  filename_pattern: "{YYYY-MM-DD}.md"
+  agenda_template_discussion: 83
+  agenda_section_template: standard
+  # ADLC is a WS4 SIG; the WS4 main minutes carry cross-context (scope, TSC
+  # confirmation, delta-controls). Fall back to them when ADLC minutes are sparse.
+  fallback_minutes_dir: meeting_minutes/ws4
+
+triage:
+  milestone_namespace: adlc
+  recognised_triage_labels:
+    - review
+    - accepted
+    - SIG
+    - deferred
