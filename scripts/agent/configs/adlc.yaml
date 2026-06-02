@@ -13,13 +13,9 @@ workstream:
   parent_workstream: ws4
 
 leads:
-  - { name: Sarah Novotny, github: sarahnovotny, role: chair }
-  - { name: Ian Molloy, github: imolloy, role: chair }
   - { name: Parul Singh, github: husky-parul, role: chair }
-  - { name: Kathleen Goesche, github: kgoesche, role: supporting }
-  - { name: Jennings Aske, github: null, role: supporting }
-  - { name: Peru, github: null, role: supporting }
-  - { name: David LaBianca, github: davidlabianca, role: contributor }
+  - { name: Kathleen Goesche, github: kgoesche, role: chair }
+  - { name: Jennings Aske, github: null, role: chair }
 
 meeting:
   cadence: Wednesdays
@@ -31,6 +27,12 @@ meeting:
   # ADLC is a WS4 SIG; the WS4 main minutes carry cross-context (scope, TSC
   # confirmation, delta-controls). Fall back to them when ADLC minutes are sparse.
   fallback_minutes_dir: meeting_minutes/ws4
+
+channels:
+  slack:
+    # ADLC SIG channel #ws4-adlc-sig
+    # https://cosai-op.slack.com/archives/C0AU54V7B9V
+    channel: ws4-adlc-sig
 
 triage:
   milestone_namespace: adlc
