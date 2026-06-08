@@ -103,6 +103,18 @@ SOURCES = [
         "shared_folder_name_template": "WS3 CoSAI-RM SIG {y}{m}{d}",
     },
     {
+        "name": "Agent-Credentials",
+        "type": "drive",
+        "folder_id": "1Telz7CDwCgPNUyHlMwu9cBGl-keqP9z3",
+        "subdir": "agent-credentials",
+        "shared_name_contains": "CoSAI WS4: Agent Credentials",
+        "shared_title_pattern": (
+            r"^CoSAI WS4: Agent Credentials - "
+            r"(?P<y>\d{4})/(?P<m>\d{2})/(?P<d>\d{2}) .* Notes by Gemini$"
+        ),
+        "shared_folder_name_template": "{y}-{m}-{d}",
+    },
+    {
         "name": "TSC",
         "type": "github",
         "repo": "cosai-oasis/cosai-tsc",
