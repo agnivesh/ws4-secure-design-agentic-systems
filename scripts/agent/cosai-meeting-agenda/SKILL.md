@@ -19,8 +19,8 @@ The authoritative format is the GitHub Discussion in `{config.repo.owner}/{confi
 
 At run time:
 
-1. Read the workstream config: `<repo_root>/scripts/agent/configs/{workstream}.yaml` (auto-resolved by the renderer at install time).
-2. If the config has `extends:`, the renderer's resolution logic merges with the parent (single-level only). For an interactive read, you can verify by running `<repo_root>/scripts/agent/render.py --validate-all` — it prints the effective config.
+1. Read the workstream config: `<repo_root>/scripts/agent/configs/{workstream}.yaml`.
+2. If the config has `extends:`, merge it onto the named parent config (single-level only) — values in the child override the parent.
 3. Use `{config.X}` references throughout this document — replace with the resolved value at run time.
 
 ## Process
@@ -111,7 +111,7 @@ At run time:
 - For items carried across multiple meetings, note the carry (`? (carried from Apr 9 & Apr 16)`).
 - For ambiguous items, annotate inline rather than silently resolving — flag for live clarification.
 
-7. **Write the draft to `<repo_root>/agenda_drafts/{workstream}/{meeting_date}.md`.** Frontmatter per the contract in DESIGN.md §7. The fields `generated_at`, `generated_by` (gh identity), `generated_by_role` (looked up from `{config.leads}` plus a `gh` permission check) are populated automatically.
+7. **Write the draft to `<repo_root>/agenda_drafts/{workstream}/{meeting_date}.md`.** Frontmatter per the contract in `<repo_root>/agenda_drafts/README.md`. The fields `generated_at`, `generated_by` (gh identity), `generated_by_role` (looked up from `{config.leads}` plus a `gh` permission check) are populated automatically.
 
 8. **Present to user for review** before promotion to a GitHub Discussion. Never post without approval.
 

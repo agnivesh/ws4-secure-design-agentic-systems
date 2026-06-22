@@ -15,7 +15,7 @@ The date is the **meeting date**, not the generation date.
 
 ## Frontmatter contract
 
-Every draft carries the frontmatter documented in `scripts/agent/DESIGN.md` §7. Fields:
+Every draft carries the following frontmatter. Fields:
 
 - `schema_version: 1` (constant)
 - `workstream` — slug, matches a config in `scripts/agent/configs/`

@@ -41,7 +41,7 @@ All new work must be approved through the Request for Comments (RFC) process:
 
 ## Working with WS4 tooling
 
-Repeatable PM tasks (meeting agendas, issue triage) are scaffolded in `scripts/agent/`. Skills there are workstream-agnostic (drop a config in `scripts/agent/configs/`) and harness-aware (Claude Code today; the manifest schema is intentionally portable for other agentic harnesses). See `scripts/agent/README.md` for install + use.
+Repeatable PM tasks (meeting agendas, issue triage) live as Claude Code skill packages under `scripts/agent/cosai-meeting-agenda/` and `scripts/agent/cosai-issue-triage/`. Each carries its own `SKILL.md` and `manifest.yaml`; workstream specifics (repo, leads, recognised labels) are configured in `scripts/agent/configs/`.
 
 ## Questions?
 
