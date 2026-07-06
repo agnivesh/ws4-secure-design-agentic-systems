@@ -3,10 +3,12 @@
 Fetch CoSAI meeting minutes from Google Drive and GitHub, save as markdown.
 
 Drive sources: Reads Gemini-generated meeting notes from shared Drive
-folders, exports them as markdown. Uses OAuth credentials from
-~/.config/mcp-gdrive/ (shared with the mcp-gdrive MCP server). Currently
-covers WS4, the ADLC SIG (under WS4), WS3, the Code-Development SIG (under
-WS3), and the Risk Management SIG (under WS3).
+folders, exports them as markdown. Drive access goes through the Google
+Workspace CLI (`gws`, https://github.com/googleworkspace/cli); install it
+(e.g. `brew install googleworkspace-cli`) and authenticate once with
+`gws auth login` (needs the `drive` scope). Currently covers WS4, the
+ADLC SIG (under WS4), WS3, the Code-Development SIG (under WS3), the
+Risk Management SIG (under WS3), and the Agent Credentials group.
 
 GitHub sources (TSC): Reads markdown meeting minutes committed to a public
 GitHub repo directory. Uses the unauthenticated GitHub Contents API; honors
@@ -26,15 +28,12 @@ import argparse
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
-
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 
 # Meeting sources. Each source has:
 #   type:    "drive" or "github"
@@ -123,97 +122,96 @@ SOURCES = [
     },
 ]
 
-# Credentials path (shared with mcp-gdrive)
-CREDS_DIR = Path.home() / ".config" / "mcp-gdrive"
-CREDS_FILE = CREDS_DIR / ".gdrive-server-credentials.json"
-OAUTH_KEYS_FILE = CREDS_DIR / "gcp-oauth.keys.json"
-
 # Output directory
 REPO_ROOT = Path.home() / "Github" / "ws4-secure-design-agentic-systems"
 OUTPUT_DIR = REPO_ROOT / "meeting_minutes"
 
 
-def load_credentials():
-    """Load and refresh OAuth credentials."""
-    if not CREDS_FILE.exists():
-        print(f"Error: No credentials file at {CREDS_FILE}", file=sys.stderr)
-        print("Run the mcp-gdrive auth flow first.", file=sys.stderr)
-        sys.exit(1)
+class GwsError(Exception):
+    """A gws invocation failed; message carries the API error if parseable."""
 
-    with open(CREDS_FILE) as f:
-        creds_data = json.load(f)
 
-    with open(OAUTH_KEYS_FILE) as f:
-        oauth_keys = json.load(f)
-        installed = oauth_keys["installed"]
+def run_gws(args, cwd=None):
+    """Run a gws command and return parsed JSON from stdout.
 
-    creds = Credentials(
-        token=creds_data.get("access_token"),
-        refresh_token=creds_data.get("refresh_token"),
-        token_uri=installed["token_uri"],
-        client_id=installed["client_id"],
-        client_secret=installed["client_secret"],
-        scopes=creds_data.get("scope", "").split(),
+    Raises GwsError on nonzero exit, with the Drive API error message when
+    gws printed one (gws emits the error JSON on stdout).
+    """
+    result = subprocess.run(
+        ["gws", *args],
+        capture_output=True,
+        text=True,
+        cwd=cwd,
     )
-
-    if creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-        # Save refreshed credentials
-        new_creds = {
-            "access_token": creds.token,
-            "refresh_token": creds.refresh_token,
-            "scope": " ".join(creds.scopes or []),
-            "token_type": "Bearer",
-            "expiry_date": int(creds.expiry.timestamp() * 1000) if creds.expiry else None,
-        }
-        with open(CREDS_FILE, "w") as f:
-            json.dump(new_creds, f, indent=2)
-
-    return creds
+    if result.returncode != 0:
+        message = result.stderr.strip().splitlines()[-1:] or ["unknown error"]
+        try:
+            err = json.loads(result.stdout).get("error", {})
+            message = [f"{err.get('code', '?')} {err.get('message', 'unknown error')}"]
+        except (json.JSONDecodeError, AttributeError):
+            pass
+        raise GwsError(message[0])
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError as e:
+        raise GwsError(f"unparseable gws output: {e}")
 
 
-def list_meeting_folders(drive_service, parent_folder_id):
-    """List all meeting subfolders in a parent Drive folder."""
-    folders = []
-    page_token = None
-
+def drive_list(params):
+    """Call `gws drive files list`, following pagination. Returns files[]."""
+    files = []
+    params = dict(params)
     while True:
-        response = drive_service.files().list(
-            q=f"'{parent_folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
-            fields="nextPageToken, files(id, name)",
-            pageSize=100,
-            pageToken=page_token,
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True,
-        ).execute()
-
-        folders.extend(response.get("files", []))
+        response = run_gws(["drive", "files", "list", "--params", json.dumps(params)])
+        files.extend(response.get("files", []))
         page_token = response.get("nextPageToken")
         if not page_token:
-            break
+            return files
+        params["pageToken"] = page_token
 
+
+def check_gws():
+    """Verify the gws CLI is available before doing any Drive work."""
+    if shutil.which("gws"):
+        return
+    print("Error: the Google Workspace CLI (`gws`) is not on PATH.", file=sys.stderr)
+    print("Install: brew install googleworkspace-cli  (or npm install -g @googleworkspace/cli)", file=sys.stderr)
+    print("Then authenticate once: gws auth login", file=sys.stderr)
+    sys.exit(1)
+
+
+def list_meeting_folders(parent_folder_id):
+    """List all meeting subfolders in a parent Drive folder."""
+    folders = drive_list({
+        "q": (
+            f"'{parent_folder_id}' in parents and "
+            "mimeType='application/vnd.google-apps.folder' and trashed=false"
+        ),
+        "fields": "nextPageToken, files(id, name)",
+        "pageSize": 100,
+        "supportsAllDrives": True,
+        "includeItemsFromAllDrives": True,
+    })
     return sorted(folders, key=lambda f: f["name"])
 
 
-def find_notes_doc(drive_service, folder_id):
+def find_notes_doc(folder_id):
     """Find the Gemini notes document in a meeting folder.
 
     Returns a dict with id, name, and mimeType. If the match is a shortcut
     pointing to a Google Doc, the returned id is the shortcut's target id so
     the caller can export it directly.
     """
-    response = drive_service.files().list(
-        q=(
+    files = drive_list({
+        "q": (
             f"'{folder_id}' in parents and trashed=false and "
             "(mimeType='application/vnd.google-apps.document' "
             "or mimeType='application/vnd.google-apps.shortcut')"
         ),
-        fields="files(id, name, mimeType, shortcutDetails)",
-        supportsAllDrives=True,
-        includeItemsFromAllDrives=True,
-    ).execute()
-
-    files = response.get("files", [])
+        "fields": "nextPageToken, files(id, name, mimeType, shortcutDetails)",
+        "supportsAllDrives": True,
+        "includeItemsFromAllDrives": True,
+    })
 
     def resolve(f):
         if f["mimeType"] == "application/vnd.google-apps.shortcut":
@@ -236,16 +234,26 @@ def find_notes_doc(drive_service, folder_id):
     return None
 
 
-def export_doc_as_markdown(drive_service, file_id):
-    """Export a Google Doc as markdown text."""
-    content = drive_service.files().export(
-        fileId=file_id,
-        mimeType="text/plain",
-    ).execute()
+def export_doc_as_markdown(file_id, workdir):
+    """Export a Google Doc as markdown text.
 
-    if isinstance(content, bytes):
-        return content.decode("utf-8")
-    return content
+    gws only writes exports inside its working directory, so run it with
+    cwd=workdir and a relative temp filename, then read and remove the file.
+    """
+    tmp_name = f".gws-export-{os.getpid()}.tmp"
+    tmp_path = workdir / tmp_name
+    try:
+        run_gws(
+            [
+                "drive", "files", "export",
+                "--params", json.dumps({"fileId": file_id, "mimeType": "text/plain"}),
+                "-o", tmp_name,
+            ],
+            cwd=workdir,
+        )
+        return tmp_path.read_text(encoding="utf-8")
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
 
 def folder_name_to_filename(folder_name):
@@ -255,7 +263,7 @@ def folder_name_to_filename(folder_name):
     return f"{name}.md"
 
 
-def fetch_drive_source(source, output_dir, drive_service, skip_existing):
+def fetch_drive_source(source, output_dir, skip_existing):
     """Fetch all Gemini meeting notes from a Drive source.
 
     Returns (fetched, skipped, no_notes, errors).
@@ -263,7 +271,7 @@ def fetch_drive_source(source, output_dir, drive_service, skip_existing):
     fetched = skipped = no_notes = errors = 0
 
     print(f"\n[{source['name']}] Listing meeting folders...")
-    folders = list_meeting_folders(drive_service, source["folder_id"])
+    folders = list_meeting_folders(source["folder_id"])
     print(f"[{source['name']}] Found {len(folders)} meeting folders")
 
     for folder in folders:
@@ -274,7 +282,7 @@ def fetch_drive_source(source, output_dir, drive_service, skip_existing):
             skipped += 1
             continue
 
-        notes_doc = find_notes_doc(drive_service, folder["id"])
+        notes_doc = find_notes_doc(folder["id"])
         if not notes_doc:
             print(f"  {folder['name']}: no notes document found")
             no_notes += 1
@@ -282,16 +290,12 @@ def fetch_drive_source(source, output_dir, drive_service, skip_existing):
 
         print(f"  {folder['name']}: fetching '{notes_doc['name']}'...")
         try:
-            content = export_doc_as_markdown(drive_service, notes_doc["id"])
-        except HttpError as e:
+            content = export_doc_as_markdown(notes_doc["id"], output_dir)
+        except GwsError as e:
             # Listing surfaces shortcuts whose target doc may be in a
             # restricted Drive the user can't export from. Don't let one
             # bad doc kill the whole run.
-            print(
-                f"  {folder['name']}: export failed ({e.resp.status} "
-                f"{e.resp.reason}); skipping",
-                file=sys.stderr,
-            )
+            print(f"  {folder['name']}: export failed ({e}); skipping", file=sys.stderr)
             errors += 1
             continue
 
@@ -306,7 +310,7 @@ def fetch_drive_source(source, output_dir, drive_service, skip_existing):
     return fetched, skipped, no_notes, errors
 
 
-def fetch_drive_shared_fallback(source, output_dir, drive_service, skip_existing):
+def fetch_drive_shared_fallback(source, output_dir, skip_existing):
     """Catch Gemini notes that are shared with the user but not yet filed
     into a per-meeting subfolder. Matches by title pattern; writes to the
     same canonical filename the folder pass would produce.
@@ -330,21 +334,13 @@ def fetch_drive_shared_fallback(source, output_dir, drive_service, skip_existing
     )
 
     print(f"\n[{source['name']}] Scanning shared-with-me for unfiled Gemini notes...")
-    candidates = []
-    page_token = None
-    while True:
-        resp = drive_service.files().list(
-            q=q,
-            fields="nextPageToken, files(id, name, mimeType)",
-            pageSize=100,
-            pageToken=page_token,
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True,
-        ).execute()
-        candidates.extend(resp.get("files", []))
-        page_token = resp.get("nextPageToken")
-        if not page_token:
-            break
+    candidates = drive_list({
+        "q": q,
+        "fields": "nextPageToken, files(id, name, mimeType)",
+        "pageSize": 100,
+        "supportsAllDrives": True,
+        "includeItemsFromAllDrives": True,
+    })
 
     for f in candidates:
         m = pat.match(f["name"])
@@ -359,13 +355,9 @@ def fetch_drive_shared_fallback(source, output_dir, drive_service, skip_existing
 
         print(f"  [shared] {synthetic}: fetching '{f['name']}'...")
         try:
-            content = export_doc_as_markdown(drive_service, f["id"])
-        except HttpError as e:
-            print(
-                f"  [shared] {synthetic}: export failed ({e.resp.status} "
-                f"{e.resp.reason}); skipping",
-                file=sys.stderr,
-            )
+            content = export_doc_as_markdown(f["id"], output_dir)
+        except GwsError as e:
+            print(f"  [shared] {synthetic}: export failed ({e}); skipping", file=sys.stderr)
             errors += 1
             continue
         header = (
@@ -434,11 +426,8 @@ def main():
 
     OUTPUT_DIR.mkdir(exist_ok=True)
 
-    drive_service = None
     if any(s["type"] == "drive" for s in SOURCES):
-        print("Loading credentials...")
-        creds = load_credentials()
-        drive_service = build("drive", "v3", credentials=creds)
+        check_gws()
 
     total_fetched = 0
     total_skipped = 0
@@ -451,12 +440,12 @@ def main():
 
         if source["type"] == "drive":
             fetched, skipped, no_notes, errors = fetch_drive_source(
-                source, output_dir, drive_service, args.skip_existing
+                source, output_dir, args.skip_existing
             )
             total_no_notes += no_notes
             total_errors += errors
             f2, s2, e2 = fetch_drive_shared_fallback(
-                source, output_dir, drive_service, args.skip_existing
+                source, output_dir, args.skip_existing
             )
             fetched += f2
             skipped += s2
