@@ -41,7 +41,7 @@ All new work must be approved through the Request for Comments (RFC) process:
 
 ## Working with WS4 tooling
 
-Repeatable PM tasks (meeting agendas, issue triage) live as Claude Code skill packages under `scripts/agent/cosai-meeting-agenda/` and `scripts/agent/cosai-issue-triage/`. Each carries its own `SKILL.md` and `manifest.yaml`; workstream specifics (repo, leads, recognised labels) are configured in `scripts/agent/configs/`.
+Repeatable PM tasks (meeting agendas, issue triage) are defined under `scripts/agents/` — one self-contained markdown agent definition per task, usable with any LLM assistant. Workstream specifics (repo, leads, cadence, recognised labels, milestones) live in tables inside each definition. Meeting minutes are synced out-of-band by `scripts/fetch_meeting_minutes.py`; agenda drafts land in `agenda_drafts/` for chair review.
 
 ## Questions?
 
