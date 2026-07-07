@@ -16,18 +16,13 @@ in the context of this repo — never auto-fired on unrelated work.
 
 ## Installing
 
-Install into your agent with the [`skills` CLI](https://github.com/vercel-labs/skills).
-These live under `scripts/agents/` (a custom location), so use the direct
-subfolder URL:
+Install into your agent with the [`skills` CLI](https://github.com/vercel-labs/skills):
 
 ```bash
-# cosai-ws4-meeting-agenda
-npx skills@latest add https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/tree/main/scripts/agents/cosai-ws4-meeting-agenda
-
-# cosai-ws4-issue-triage
-npx skills@latest add https://github.com/cosai-oasis/ws4-secure-design-agentic-systems/tree/main/scripts/agents/cosai-ws4-issue-triage
+npx skills@latest add cosai-oasis/ws4-secure-design-agentic-systems --skill cosai-ws4-meeting-agenda
+npx skills@latest add cosai-oasis/ws4-secure-design-agentic-systems --skill cosai-ws4-issue-triage
 ```
 
 The `cosai-ws4-meeting-agenda` skill reads meeting minutes synced by
-[`scripts/fetch_meeting_minutes.py`](../fetch_meeting_minutes.py) (setup in
-[`scripts/README.md`](../README.md)).
+[`scripts/fetch_meeting_minutes.py`](../scripts/fetch_meeting_minutes.py) (setup
+in [`scripts/README.md`](../scripts/README.md)).
