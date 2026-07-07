@@ -1,10 +1,10 @@
 ---
-name: issue-triage
+name: cosai-ws4-issue-triage
 description: >-
-  Produce a structured triage note for a GitHub issue or PR, matching the
-  format established by @parmarmanojkumar. Classifies the issue (type,
-  recommendation, wave, milestone) and presents it as a draft; posting it as a
-  comment always requires explicit user approval.
+  CoSAI WS4 only — draft a structured triage note for a WS4/ADLC issue or PR in
+  @parmarmanojkumar's house format. Summon by name in the
+  ws4-secure-design-agentic-systems repo.
+disable-model-invocation: true
 ---
 
 # CoSAI issue-triage skill

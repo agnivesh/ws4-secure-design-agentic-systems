@@ -1,10 +1,10 @@
 ---
-name: meeting-agenda
+name: cosai-ws4-meeting-agenda
 description: >-
-  Generate a structured agenda draft for an upcoming CoSAI workstream or SIG
-  meeting. Pulls from the previous agenda Discussion, recent meeting minutes,
-  and open GitHub issues and PRs, and writes a draft for human review.
-  Promotion to a GitHub Discussion always requires explicit user approval.
+  CoSAI WS4 only — draft an agenda for a WS4 or ADLC meeting from the previous
+  agenda, recent minutes, and open issues/PRs. Summon by name in the
+  ws4-secure-design-agentic-systems repo.
+disable-model-invocation: true
 ---
 
 # CoSAI meeting-agenda skill
@@ -52,7 +52,7 @@ leads plus a `gh` permission check) automatically.
 | Recognised triage labels | `review`, `accepted`, `whitepaper`, `playbook`, `v2 branch` | `review`, `accepted`, `SIG`, `deferred` |
 
 To onboard another workstream or SIG, add a column here (and to the
-corresponding table in `../issue-triage/SKILL.md`).
+corresponding table in `../cosai-ws4-issue-triage/SKILL.md`).
 
 The canonical agenda format is the GitHub Discussion named in the "Agenda
 template Discussion" row. When in doubt, fetch that discussion and match its
