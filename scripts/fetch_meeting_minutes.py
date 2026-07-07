@@ -4,9 +4,8 @@ Fetch CoSAI meeting minutes from Google Drive and GitHub, save as markdown.
 
 Drive sources: Reads Gemini-generated meeting notes from shared Drive
 folders, exports them as markdown. Drive access goes through the Google
-Workspace CLI (`gws`, https://github.com/googleworkspace/cli); install it
-(e.g. `brew install googleworkspace-cli`) and authenticate once with
-`gws auth login` (needs the `drive` scope). Currently covers WS4, the
+Workspace CLI (`gws`, https://github.com/googleworkspace/cli). See
+scripts/README.md for one-time gws + gcloud + OAuth setup. Currently covers WS4, the
 ADLC SIG (under WS4), WS3, the Code-Development SIG (under WS3), the
 Risk Management SIG (under WS3), and the Agent Credentials group.
 
@@ -122,8 +121,10 @@ SOURCES = [
     },
 ]
 
-# Output directory
-REPO_ROOT = Path.home() / "Github" / "ws4-secure-design-agentic-systems"
+# Output directory. Derived from this script's location (scripts/ lives at the
+# repo root) so the script writes into whatever clone it is run from, rather
+# than a hard-coded path.
+REPO_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = REPO_ROOT / "meeting_minutes"
 
 
@@ -175,8 +176,8 @@ def check_gws():
     if shutil.which("gws"):
         return
     print("Error: the Google Workspace CLI (`gws`) is not on PATH.", file=sys.stderr)
-    print("Install: brew install googleworkspace-cli  (or npm install -g @googleworkspace/cli)", file=sys.stderr)
-    print("Then authenticate once: gws auth login", file=sys.stderr)
+    print("Install it from https://github.com/googleworkspace/cli/releases", file=sys.stderr)
+    print("then follow the setup in scripts/README.md.", file=sys.stderr)
     sys.exit(1)
 
 
@@ -246,7 +247,7 @@ def export_doc_as_markdown(file_id, workdir):
         run_gws(
             [
                 "drive", "files", "export",
-                "--params", json.dumps({"fileId": file_id, "mimeType": "text/plain"}),
+                "--params", json.dumps({"fileId": file_id, "mimeType": "text/markdown"}),
                 "-o", tmp_name,
             ],
             cwd=workdir,
@@ -387,9 +388,9 @@ def fetch_github_source(source, output_dir, skip_existing):
     """Fetch markdown meeting minutes from a GitHub repo directory.
 
     Lists files via the GitHub Contents API and downloads .md files via
-    each file's download_url. Returns (fetched, skipped).
+    each file's download_url. Returns (fetched, skipped, errors).
     """
-    fetched = skipped = 0
+    fetched = skipped = errors = 0
     api_url = f"https://api.github.com/repos/{source['repo']}/contents/{source['path']}"
 
     print(f"\n[{source['name']}] Listing GitHub directory {source['repo']}/{source['path']}...")
@@ -398,7 +399,7 @@ def fetch_github_source(source, output_dir, skip_existing):
             listing = json.load(resp)
     except urllib.error.HTTPError as e:
         print(f"[{source['name']}] GitHub API error: {e.code} {e.reason}", file=sys.stderr)
-        return fetched, skipped
+        return fetched, skipped, errors + 1
 
     md_files = [f for f in listing if f.get("type") == "file" and f["name"].endswith(".md")]
     print(f"[{source['name']}] Found {len(md_files)} markdown files")
@@ -410,12 +411,19 @@ def fetch_github_source(source, output_dir, skip_existing):
             continue
 
         print(f"  {f['name']}: fetching...")
-        with _github_request(f["download_url"]) as resp:
-            content = resp.read().decode("utf-8")
+        # One bad download (transient error, moved file) shouldn't abort the
+        # whole source; log it and move on, mirroring the Drive path.
+        try:
+            with _github_request(f["download_url"]) as resp:
+                content = resp.read().decode("utf-8")
+        except (urllib.error.URLError, OSError) as e:
+            print(f"  {f['name']}: download failed ({e}); skipping", file=sys.stderr)
+            errors += 1
+            continue
         output_path.write_text(content, encoding="utf-8")
         fetched += 1
 
-    return fetched, skipped
+    return fetched, skipped, errors
 
 
 def main():
@@ -451,7 +459,10 @@ def main():
             skipped += s2
             total_errors += e2
         elif source["type"] == "github":
-            fetched, skipped = fetch_github_source(source, output_dir, args.skip_existing)
+            fetched, skipped, errors = fetch_github_source(
+                source, output_dir, args.skip_existing
+            )
+            total_errors += errors
         else:
             print(f"[{source['name']}] Unknown source type: {source['type']}", file=sys.stderr)
             continue
