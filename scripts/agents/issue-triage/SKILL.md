@@ -1,3 +1,12 @@
+---
+name: issue-triage
+description: >-
+  Produce a structured triage note for a GitHub issue or PR, matching the
+  format established by @parmarmanojkumar. Classifies the issue (type,
+  recommendation, wave, milestone) and presents it as a draft; posting it as a
+  comment always requires explicit user approval.
+---
+
 # CoSAI Issue Triage Sub-Agent Definition
 
 **Version:** 1.0.0
