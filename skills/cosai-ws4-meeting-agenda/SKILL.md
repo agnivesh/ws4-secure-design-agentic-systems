@@ -5,6 +5,16 @@ description: >-
   agenda, recent minutes, and open issues/PRs. Summon by name in the
   ws4-secure-design-agentic-systems repo.
 disable-model-invocation: true
+allowed-tools:
+- "Bash(gh pr list:*)"
+- "Bash(gh pr view:*)"
+- "Bash(gh auth status:*)"
+- "Bash(gh issue list:*)"
+- "Bash(gh discussion list:*)"
+- "Bash(gh discussion view:*)"
+- "Bash(find meeting_minutes*:*)"
+- "Bash(python scripts/fetch_meeting_minutes.py:*)"
+- "Bash(uv run python scripts/fetch_meeting_minutes.py:*)"
 ---
 
 # CoSAI meeting-agenda skill
@@ -70,16 +80,27 @@ open PRs, open issues — have each been accounted for.
    open action items into the new agenda's Action Item Follow-ups unless visibly
    resolved.
 
-2. **Read recent meeting minutes** from the workstream's minutes directory (last
-   2–3 files, sorted by date). Extract new action items and owners (most recent
-   meeting), resolutions of prior items, decisions, and deferred topics. If a
-   fallback minutes directory is set and the primary is sparse, also scan the
-   fallback.
+2. **Fetch fresh minutes if stale, then read them.**
 
-   The minutes directory is populated out-of-band by
-   `scripts/fetch_meeting_minutes.py` (nightly via cron, or manually with
-   `--skip-existing` before drafting). If it is missing, halt and tell the user
-   to run it — do not fetch from Drive directly.
+   a. Identify the most recent minutes file in the workstream's minutes directory
+      (sort by filename date per the workstream's filename pattern). If the
+      directory is missing, empty, or the most recent file's date is **more than
+      two days before today**, run the fetch script first:
+
+      ```
+      python scripts/fetch_meeting_minutes.py --skip-existing
+      ```
+
+      Prefer to run the script in a virtual environment (`uv run`) if available.
+
+      If the script exits non-zero, note the error, continue with whatever
+      minutes are already on disk, and add a `> **Minutes warning:** fetch
+      failed — content may be incomplete` notice to the agenda header.
+
+   b. Read the last 2–3 files (sorted by date) from the workstream's minutes
+      directory. Extract new action items and owners (most recent meeting),
+      resolutions of prior items, decisions, and deferred topics. If a fallback
+      minutes directory is set and the primary is sparse, also scan the fallback.
 
 3. **Pull open PRs** from the workstream's repo: group contributor PRs needing
    review vs external submissions needing triage; highlight PRs aligned with the
@@ -176,10 +197,10 @@ directory (if set) and note the sparse-minutes condition in the agenda.
 
 ## Failure modes
 
-- **Minutes directory missing or empty** — halt with the expected path and the
-  recovery instruction (run `scripts/fetch_meeting_minutes.py`). If a fallback
-  minutes directory is set, scan it and add a "minutes-sparse" notice to the
-  agenda.
+- **Minutes directory missing, empty, or stale (> 2 days)** — auto-run
+  `scripts/fetch_meeting_minutes.py --skip-existing`. If the script fails,
+  continue on available minutes and add a `Minutes warning` notice to the agenda
+  header. If a fallback minutes directory is set, also scan it.
 - **`gh` unavailable or unauthenticated** — halt with auth instructions; do not
   fall back to web fetch.
 - **Previous-agenda Discussion not found** — proceed; note in Action Item
